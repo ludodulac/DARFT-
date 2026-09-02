@@ -24,6 +24,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Feature Ludovic Dulac on homepage
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text()
+          feature = '''<section class="section" id="ludovic-dulac"><div class="section-head"><div><div class="eyebrow">DARFT / Nouvelle sélection · Brest</div><h2>La Reine de Verre</h2></div><span class="small">Ludovic Dulac · 1 490 €</span></div><div class="collection"><div class="a3" style="min-height:520px;border:12px solid #171715"></div><div><div class="bigquote">Un visage monumental et fragile, construit comme un vitrail.</div><p class="lead">Acrylique sur toile · 91 × 73 cm · œuvre originale et unique · signée · certificat d'authenticité.</p><a class="btn" style="text-decoration:none" href="./ludovic-dulac.html">Voir l'œuvre et l'artiste</a></div></div></section>'''
+          s = s.replace('</main>', feature + '</main>')
+          s = s.replace('<div class="index-list">', '<div class="index-list"><div class="row" onclick="location.href=\'./ludovic-dulac.html\'"><span>000</span><span class="name">Ludovic Dulac</span><span>France · Brest</span><span>Peinture · Vitrail · Musique</span><span>La Reine de Verre →</span></div>', 1)
+          p.write_text(s)
+          PY
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 

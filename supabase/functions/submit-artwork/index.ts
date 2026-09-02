@@ -14,6 +14,7 @@ Deno.serve(async (req: Request) => {
     const form = await req.formData();
     const files = form.getAll('images').filter((value): value is File => value instanceof File);
     if (files.length < 3 || files.length > 8) return json({ error: 'Entre 3 et 8 images sont requises.' }, 400);
+
     const allowed = new Set(['image/jpeg', 'image/png', 'image/webp']);
     for (const file of files) {
       if (!allowed.has(file.type)) return json({ error: `Format non autorisé : ${file.type}` }, 400);
@@ -27,13 +28,13 @@ Deno.serve(async (req: Request) => {
     const medium = required(form, 'medium');
     const dimensions = required(form, 'dimensions');
     const story = required(form, 'story');
-    if (!String(form.get('rights') || 'on')) throw new Error('La confirmation des droits est obligatoire.');
+    if (text(form, 'rights') !== 'true') throw new Error('La confirmation des droits est obligatoire.');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRole = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const db = createClient(supabaseUrl, serviceRole, { auth: { persistSession: false } });
 
-    const { data: artist, error: artistError } = await db.from('artists').insert({
+    const { data: artist, error: artistError } = await db.from('darft_artists').insert({
       name: artistName,
       email,
       phone: text(form, 'phone'),
@@ -44,7 +45,7 @@ Deno.serve(async (req: Request) => {
 
     const yearRaw = text(form, 'year');
     const priceRaw = text(form, 'price_eur');
-    const { data: artwork, error: artworkError } = await db.from('artworks').insert({
+    const { data: artwork, error: artworkError } = await db.from('darft_artworks').insert({
       artist_id: artist.id,
       title,
       year: yearRaw ? Number(yearRaw) : null,
@@ -57,7 +58,7 @@ Deno.serve(async (req: Request) => {
     }).select('id').single();
     if (artworkError) throw artworkError;
 
-    const { data: submission, error: submissionError } = await db.from('submissions').insert({
+    const { data: submission, error: submissionError } = await db.from('darft_submissions').insert({
       artwork_id: artwork.id,
       archive_consent: text(form, 'archive_consent') === 'true',
       rights_confirmed: true
@@ -69,12 +70,13 @@ Deno.serve(async (req: Request) => {
       const ext = extensionFor(file.type);
       const path = `${submission.id}/${String(i + 1).padStart(2, '0')}-${crypto.randomUUID()}.${ext}`;
       const bytes = new Uint8Array(await file.arrayBuffer());
-      const { error: uploadError } = await db.storage.from('submission-images').upload(path, bytes, {
+      const { error: uploadError } = await db.storage.from('darft-submission-images').upload(path, bytes, {
         contentType: file.type,
         upsert: false
       });
       if (uploadError) throw uploadError;
-      const { error: imageError } = await db.from('submission_images').insert({
+
+      const { error: imageError } = await db.from('darft_submission_images').insert({
         submission_id: submission.id,
         storage_path: path,
         original_name: file.name,

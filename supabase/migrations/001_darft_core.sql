@@ -83,7 +83,7 @@ create or replace function public.is_darft_admin()
 returns boolean
 language sql
 stable
-security definer
+security invoker
 set search_path = public
 as $$
   select exists (
@@ -93,7 +93,10 @@ as $$
 $$;
 
 create or replace function public.darft_touch_submission_updated_at()
-returns trigger language plpgsql as $$
+returns trigger
+language plpgsql
+set search_path = public
+as $$
 begin
   new.updated_at = now();
   return new;
@@ -115,6 +118,8 @@ begin
   return new;
 end;
 $$;
+
+revoke execute on function public.darft_log_submission_status_change() from public, anon, authenticated;
 
 drop trigger if exists darft_submissions_status_history on public.darft_submissions;
 create trigger darft_submissions_status_history

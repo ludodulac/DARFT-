@@ -11,7 +11,7 @@ const drawer = document.getElementById('drawer');
 let currentSubmission = null;
 
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-  loginStatus.textContent = 'Le back office est construit mais le projet Supabase DARFT n’est pas encore connecté.';
+  loginStatus.textContent = 'Le back office est construit mais Supabase n’est pas encore connecté au front DARFT.';
   loginForm.querySelector('button').disabled = true;
 } else {
   const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
@@ -36,9 +36,9 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
 }
 
 async function openAdmin(supabase) {
-  const { data: me, error: profileError } = await supabase.from('profiles').select('role').single();
-  if (profileError || me?.role !== 'admin') {
-    loginStatus.textContent = 'Ce compte n’a pas les droits administrateur DARFT.';
+  const { data: me, error: profileError } = await supabase.from('darft_profiles').select('role').single();
+  if (profileError || !['admin', 'reviewer'].includes(me?.role)) {
+    loginStatus.textContent = 'Ce compte n’a pas les droits comité DARFT.';
     await supabase.auth.signOut();
     return;
   }
@@ -50,7 +50,7 @@ async function openAdmin(supabase) {
 async function loadSubmissions(supabase) {
   adminStatus.textContent = 'Chargement…';
   const { data, error } = await supabase
-    .from('submissions_admin')
+    .from('darft_submissions_admin')
     .select('*')
     .order('created_at', { ascending: false });
   if (error) return adminStatus.textContent = error.message;
@@ -93,7 +93,7 @@ async function saveReview(supabase) {
     reviewed_at: new Date().toISOString()
   };
   adminStatus.textContent = 'Enregistrement…';
-  const { error } = await supabase.from('submissions').update(payload).eq('id', currentSubmission.id);
+  const { error } = await supabase.from('darft_submissions').update(payload).eq('id', currentSubmission.id);
   if (error) return adminStatus.textContent = error.message;
   adminStatus.textContent = 'Décision enregistrée.';
   await loadSubmissions(supabase);
